@@ -40,35 +40,16 @@ import nest_asyncio
 nest_asyncio.apply()
 
 
-# Configure logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ============================================================================
+
 # Configuration & Constants
-# ============================================================================
 
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 MODEL_NAME = "deepseek/deepseek-r1-0528:free"
-
-# System prompt для агента
-# AGENT_SYSTEM_PROMPT = """Ты - профессиональный аналитик рынка и исследователь с опытом в:
-# - Анализе конкурентов
-# - Исследовании трендов на рынке
-# - Сборе и синтезе информации
-# - Написании аналитических отчетов
-
-# Твоя задача - провести тщательный анализ рынка по заданной тематике и подготовить структурированный отчет с:
-# 1. Обзором рынка
-# 2. Анализом конкурентов (минимум 3-5 компаний)
-# 3. Ключевыми трендами и возможностями
-# 4. Рисками и угрозами
-# 5. Рекомендациями
-# 6. "Если в данных есть цифры для визуализации, добавь в JSON ключ 'chart_data' со структурой: {title, labels: [], values: []}'. Если данных нет, верни null."
-
-# Будь точен, опирайся на актуальные данные, используй цифры и статистику.
-# Структурируй информацию ясно и логически."""
 AGENT_SYSTEM_PROMPT = """Ты - ведущий аналитик рынка. Твоя задача — провести глубокий анализ и написать ДЕТАЛЬНЫЙ отчет.
 
 КРИТИЧЕСКИ ВАЖНО:
@@ -88,15 +69,12 @@ AGENT_SYSTEM_PROMPT = """Ты - ведущий аналитик рынка. Тв
 
 НЕ ПИШИ ничего кроме JSON объекта."""
 
-# ============================================================================
-# Data Classes
-# ============================================================================
 
 @dataclass
 class MarketResearchRequest:
     """Структура запроса на анализ рынка"""
     topic: str
-    structure: Dict[str, Any]  # Пользовательская структура отчета
+    structure: Dict[str, Any]  
     include_competitors: bool = True
     num_competitors: int = 5
     include_trends: bool = True
@@ -110,11 +88,7 @@ class ResearchResult:
     web_sources: List[str]
     timestamp: str
 
-# ============================================================================
 # Web Search Module
-# ============================================================================
-
-
 
 class WebSearchEngine:
     """Поиск через SerpWow API (Google SERP в JSON)"""
@@ -173,9 +147,7 @@ class WebSearchEngine:
                 parts.append(f"- {title} ({href})")
         return "\n".join(parts)
 
-# ============================================================================
 # Agent Module
-# ============================================================================
 
 class MarketResearchAgent:
     """Основной агент для анализа рынка"""
@@ -288,7 +260,6 @@ class MarketResearchAgent:
             
             result = response.choices[0].message.content
 
-            # ДОБАВЛЕНО: Логирование для отладки
             logger.info(f"Response length: {len(result)} chars")
             logger.info(f"Response preview: {result[:200]}...")
             logger.info(f"Response ends with: ...{result[-100:]}")
@@ -329,9 +300,7 @@ class MarketResearchAgent:
             logger.error(f"Error during refinement: {e}")
             raise
 
-# ============================================================================
 # PDF Report Generation
-# ============================================================================
 
 class PDFReportGenerator:
     """Генератор PDF отчетов с ГАРАНТИРОВАННОЙ поддержкой кириллицы"""
@@ -360,7 +329,6 @@ class PDFReportGenerator:
         pdfmetrics.registerFont(TTFont("DejaVuSans-Oblique", oblique))
         pdfmetrics.registerFont(TTFont("DejaVuSans-BoldOblique", bold_oblique))
 
-        # важно: связать начертания, чтобы <i>/<b> не уводили в Helvetica
         pdfmetrics.registerFontFamily(
             "DejaVuSans",
             normal="DejaVuSans",
@@ -379,12 +347,10 @@ class PDFReportGenerator:
         import os
         import matplotlib
 
-        # 1) Берем TTF из matplotlib (он поставляется вместе с пакетом)
         mpl_data = matplotlib.get_data_path()
         regular_path = os.path.join(mpl_data, "fonts", "ttf", "DejaVuSans.ttf")
         bold_path    = os.path.join(mpl_data, "fonts", "ttf", "DejaVuSans-Bold.ttf")
 
-        # 2) Регистрируем в ReportLab
         pdfmetrics.registerFont(TTFont("DejaVuSans", regular_path))
         pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", bold_path))
 
@@ -392,7 +358,6 @@ class PDFReportGenerator:
         heading_font = "DejaVuSans-Bold"
         body_font = "DejaVuSans"
 
-        # 3) Ваши стили (оставил структуру как у вас)
         self.styles.add(ParagraphStyle(
             name='CustomTitle',
             parent=self.styles['Heading1'],
@@ -461,7 +426,6 @@ class PDFReportGenerator:
                     if sources:
                         item = self._make_citations_clickable(str(item), sources)
 
-                    # Обработка Markdown-стиля bold (**text**) для красоты
                     formatted_item = item.replace("**", "<b>").replace("**", "</b>")
                     story.append(Paragraph(f"• {formatted_item}", self.styles['CustomBody']))
             elif isinstance(section_content, dict):
@@ -475,7 +439,7 @@ class PDFReportGenerator:
             
             story.append(Spacer(1, 0.1 * inch))
         
-        # Графики (теперь они не будут дублироваться текстом)
+        # Графики 
         if charts:
             story.append(PageBreak())
             story.append(Paragraph("", self.styles['CustomHeading']))
@@ -492,7 +456,7 @@ class PDFReportGenerator:
                     story.append(img)
                     story.append(Spacer(1, 0.3 * inch))
         
-        # --- ИСПРАВЛЕНИЕ: Блок Источников ---
+        # Блок Источников 
         if sources:
             story.append(PageBreak())
             story.append(Paragraph("Использованные источники", self.styles['CustomHeading']))
@@ -503,25 +467,6 @@ class PDFReportGenerator:
                 link_text = f'[{i}] <a href="{url}" color="blue"><u>{display_url}</u></a>'
                 story.append(Paragraph(link_text, self.styles['CustomBody']))
                 story.append(Spacer(1, 0.05 * inch))
-
-        # if sources:
-        #     story.append(PageBreak())
-        #     story.append(Paragraph("Использованные источники", self.styles['CustomHeading']))
-        #     story.append(Spacer(1, 0.1 * inch))
-            
-        #     for i, url in enumerate(sources, 1):
-        #         # Создаем кликабельную ссылку.
-        #         # ReportLab поддерживает тег <link> или <a href> внутри Paragraph
-        #         # Важно: URL нужно экранировать, если в нем есть спецсимволы, но для простоты:
-                
-        #         # Обрезаем очень длинные URL для красоты текста, но оставляем полную ссылку
-        #         display_url = url[:60] + "..." if len(url) > 60 else url
-                
-        #         # Формат: [1] Ссылка (синим цветом)
-        #         link_text = f'{i}. <a href="{url}" color="blue"><u>{display_url}</u></a>'
-                
-        #         story.append(Paragraph(link_text, self.styles['CustomBody']))
-        #         story.append(Spacer(1, 0.05 * inch))
 
         # Построение
         try:
@@ -593,9 +538,7 @@ class PDFReportGenerator:
         # Находим все [число] и заменяем их
         return re.sub(r'\[(\d+)\]', replace_citation, text)
 
-# ============================================================================
 # Gradio Interface
-# ============================================================================
 
 class MarketResearchUI:
     """UI интерфейс на Gradio"""
@@ -639,8 +582,7 @@ class MarketResearchUI:
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error at position {e.pos}: {e.msg}")
             
-            # Шаг 5: Попытка "починить" обрезанный JSON
-            # Если JSON обрезан, пытаемся закрыть структуру
+            # Шаг 5: Если JSON обрезан, пытаемся закрыть структуру
             try:
                 # Считаем открытые скобки
                 open_braces = json_str.count('{') - json_str.count('}')
@@ -667,49 +609,9 @@ class MarketResearchUI:
             except Exception:
                 pass
             
-            # Шаг 6: Последняя попытка - извлечь хоть что-то полезное
             logger.error("All parsing attempts failed, returning raw text")
             return {"analysis_text": result_text}
 
-    # def parse_analysis_result(self, result_text: str) -> Dict[str, Any]:
-    #     """
-    #     Парсинг результата: Очистка от Markdown (```
-    #     """
-    #     try:
-    #         # 1. Очистка от лишних пробелов
-    #         clean_text = result_text.strip()
-            
-    #         # 2. Удаление маркеров markdown
-    #         # Сначала ищем открывающий тег
-    #         if "```json" in clean_text:
-    #             clean_text = clean_text.split("```json")[1]
-    #         elif "```" in clean_text:
-    #             # Если просто три кавычки без json, берем все что после первой тройки
-    #             clean_text = clean_text.split("```")[1]
-            
-    #         # 3. Удаляем закрывающий тег (все что после контента)
-    #         if "```" in clean_text:
-    #             clean_text = clean_text.split("```")[0]
-            
-    #         clean_text = clean_text.strip()
-
-    #         # 4. Попытка распарсить JSON
-    #         return json.loads(clean_text)
-
-    #     except json.JSONDecodeError:
-    #         logger.error("JSON parsing failed, trying heuristic fix...")
-    #         # Попытка найти первую { и последнюю } вручную
-    #         try:
-    #             start_idx = result_text.find('{')
-    #             end_idx = result_text.rfind('}')
-    #             if start_idx != -1 and end_idx != -1:
-    #                 json_str = result_text[start_idx : end_idx + 1]
-    #                 return json.loads(json_str)
-    #         except Exception:
-    #             pass
-            
-    #         # Если совсем не вышло, возвращаем как есть текстом
-    #         return {"analysis_text": result_text}
     
     def conduct_research(self, topic: str, structure_text: str, 
                         progress=gr.Progress()) -> tuple:
@@ -833,19 +735,18 @@ class MarketResearchUI:
             # 1. Ищем данные для графика
             if "chart_data" in raw_data:
                 c_data = raw_data["chart_data"]
-                # Простейшая валидация
                 if isinstance(c_data, dict) and c_data.get("values"):
                     charts["Аналитический график"] = {
-                        "type": "bar", # Можно сделать динамическим, если LLM укажет тип
+                        "type": "bar",
                         "title": c_data.get("title", "Динамика показателей"),
                         "labels": c_data.get("labels", []),
                         "values": c_data.get("values", [])
                     }
             
-            # 2. Формируем текстовые разделы, ИСКЛЮЧАЯ chart_data
+            # 2.  текстовые разделы
             for key, value in raw_data.items():
                 if key == "chart_data":
-                    continue  # <--- ВАЖНО: Не печатаем сырые данные графика как текст!
+                    continue 
                 
                 # Сохраняем остальные разделы
                 if isinstance(value, list):
@@ -863,7 +764,7 @@ class MarketResearchUI:
                 title=f"Анализ рынка: {self.current_research.topic}",
                 sections=sections,
                 charts=charts,
-                sources=self.current_research.web_sources # <--- ИСПРАВЛЕНИЕ 2: Передаем источники
+                sources=self.current_research.web_sources 
             )
             
             progress(1.0, desc="Отчет создан!")
@@ -886,9 +787,7 @@ class MarketResearchUI:
             logger.error(f"Refinement error: {e}")
             return f"Error: {str(e)}"
 
-# ============================================================================
 # Main Gradio Interface
-# ============================================================================
 
 def create_gradio_interface():
     """
@@ -1041,9 +940,6 @@ def create_gradio_interface():
     
     return demo
 
-# ============================================================================
-# Entry Point
-# ============================================================================
 
 if __name__ == "__main__":
     logger.info("Starting Market Research Agent System...")
