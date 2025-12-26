@@ -40,6 +40,9 @@ import nest_asyncio
 nest_asyncio.apply()
 
 
+from dotenv import load_dotenv
+load_dotenv()  
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -561,7 +564,7 @@ class MarketResearchUI:
         # Шаг 2: Удаление всех markdown блоков
         # Убираем ``````
         # clean_text = re.sub(r'```')
-        lean_text = re.sub(r'```json', '', clean_text)
+        clean_text = re.sub(r'```json', '', clean_text)
         clean_text = re.sub(r'```', '', clean_text)
         
         # Шаг 3: Поиск JSON объекта (от первой { до последней })
@@ -954,7 +957,7 @@ if __name__ == "__main__":
     logger.info("Launching Gradio interface...")
     demo.launch(
         server_name="127.0.0.1",
-        server_port=7875,
+        server_port=7878,
         share=False,
         show_error=True
     )
